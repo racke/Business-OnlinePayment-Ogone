@@ -21,6 +21,34 @@ Version 0.01
 our $VERSION = '0.01';
 
 use constant SERVER => 'secure.ogone.com';
+use constant STANDARD_PAGE => 'orderstandard.asp';
+use constant STANDARD_PAGE_TEST => 'teststd.asp';
+use constant TEST_LOGIN => 'test';
+use constant CURRENCY => 'EUR';
+
+our %reverse_map = (# General Payment Parameters
+					PSPID => 'login', # affiliate name
+					ORDERID => 'order_number', # unique order number
+					AMOUNT => 'amount', # amount (multiplied by 100)
+					CURRENCY => 'currency', # ISO currency code
+					# - customer information
+					LANGUAGE => '', # language (optional, default: en_US)
+					CN => 'name', # name
+					EMAIL => 'email', # email address
+					OWNERADDRESS => 'address', # street address
+					OWNERZIP => 'zip', # zip code
+					OWNERTOWN => 'city', # city
+					OWNERCTY => 'country', # country
+					OWNERTELNO => 'phone', # telephone number
+					COM => 'description', # order description
+					# Return URLS (chapter 9 of advanced guide)
+					CATALOGURL => 'catalogurl',
+					HOMEURL => 'homeurl',
+					ACCEPTURL => 'accepturl',
+					DECLINEURL => 'declineurl',
+					EXCEPTIONURL => 'exceptionurl',
+					CANCELURL => 'cancelurl',
+);					
 
 =head1 SYNOPSIS
 
@@ -42,6 +70,17 @@ Sets the following defaults for Ogone payment:
 
 Server is C<secure.ogone.com>.
 
+=item currency
+
+Currency is C<EUR>.
+
+=head2 currency
+
+Sets the currency for the transaction from an ISO 4217 alpha currency
+code.
+
+    $tx->currency('CHF');
+
 =back
 
 =cut
@@ -49,11 +88,79 @@ Server is C<secure.ogone.com>.
 sub set_defaults {
 	my ($self, %opts) = @_;
 
+	$self->build_subs(qw/currency/);
+
 	$self->server(SERVER);
-	$self->build_subs();
+	$self->currency(CURRENCY);
 	
 	return $self;
 }
+
+=head2 form_action
+
+Returns form action for Ogone's payment page.
+
+    $action = $tx->form_action();
+    $form .= qq{<form action="$action" method="post"};
+
+=cut
+
+sub form_action {
+	my ($self) = @_;
+	my ($login, $page, %fields);
+	
+	if ($self->test_transaction) {
+		$login = TEST_LOGIN;
+	}
+	else {
+		%fields = $self->get_fields('login');
+		$login = $fields{'login'};
+	}
+
+	return 'https://' . join('/', $self->server, 'ncol', $login, STANDARD_PAGE);
+}
+
+=head2 form_fields
+
+Returns hash with fields and values for the form send to
+Ogone's payment page.
+
+    %fields = $tx->form_fields();
+
+    for my $f (keys %fields) {
+        push (@hidden, qq{<input type="hidden" name="$f" value="$fields{$f}">});
+    }
+
+    $form .= join("\n", @hidden);
+	
+    $form .= q{<input type="submit" value="Pay"></form>};
+
+=cut
+
+sub form_fields {
+	my ($self) = @_;
+	my (%fields);
+
+	%fields = $self->_revmap_fields();
+	return %fields;
+}
+
+sub _revmap_fields {
+	my ($self) = @_;
+	my (%content, %reverse);
+
+	%content = $self->content();
+
+	# defaults
+	$reverse{CURRENCY} = $self->currency();
+	
+	for (keys %reverse_map) {
+		$reverse{$_} = $content{$reverse_map{$_}};
+	}
+
+	return %reverse;
+}
+
 
 =head1 AUTHOR
 
