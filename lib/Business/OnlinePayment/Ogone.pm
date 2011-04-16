@@ -3,9 +3,14 @@ package Business::OnlinePayment::Ogone;
 use warnings;
 use strict;
 
+use Business::OnlinePayment 3;
+use vars qw(@ISA);
+
+@ISA = qw(Business::OnlinePayment);
+
 =head1 NAME
 
-Business::OnlinePayment::Ogone - The great new Business::OnlinePayment::Ogone!
+Business::OnlinePayment::Ogone - Ogone backend for Business::OnlinePayment
 
 =head1 VERSION
 
@@ -15,37 +20,39 @@ Version 0.01
 
 our $VERSION = '0.01';
 
+use constant SERVER => 'secure.ogone.com';
 
 =head1 SYNOPSIS
 
-Quick summary of what the module does.
+This is a plugin for the L<Business::OnlinePayment> interface.
 
-Perhaps a little code snippet.
+    use Business::OnlinePayment;
 
-    use Business::OnlinePayment::Ogone;
+    my $tx = Business::OnlinePayment->new('Ogone');
 
-    my $foo = Business::OnlinePayment::Ogone->new();
-    ...
+=head1 METHODS
 
-=head1 EXPORT
+=head2 set_defaults
 
-A list of functions that can be exported.  You can delete this section
-if you don't export anything, such as for a purely object-oriented module.
+Sets the following defaults for Ogone payment:
 
-=head1 SUBROUTINES/METHODS
+=over 4
 
-=head2 function1
+=item server
 
-=cut
+Server is C<secure.ogone.com>.
 
-sub function1 {
-}
-
-=head2 function2
+=back
 
 =cut
 
-sub function2 {
+sub set_defaults {
+	my ($self, %opts) = @_;
+
+	$self->server(SERVER);
+	$self->build_subs();
+	
+	return $self;
 }
 
 =head1 AUTHOR
