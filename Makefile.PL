@@ -14,6 +14,7 @@ WriteMakefile(
     PREREQ_PM => {
         'Test::More' => 0,
         'Business::OnlinePayment' => 3,
+        'Digest::SHA1' => 0,
     },
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean               => { FILES => 'Business-OnlinePayment-Ogone-*' },

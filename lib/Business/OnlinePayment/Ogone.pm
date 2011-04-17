@@ -4,6 +4,8 @@ use warnings;
 use strict;
 
 use Business::OnlinePayment 3;
+use Digest::SHA1 qw(sha1_hex);
+
 use vars qw(@ISA);
 
 @ISA = qw(Business::OnlinePayment);
@@ -74,6 +76,8 @@ Server is C<secure.ogone.com>.
 
 Currency is C<EUR>.
 
+=back
+
 =head2 currency
 
 Sets the currency for the transaction from an ISO 4217 alpha currency
@@ -81,14 +85,12 @@ code.
 
     $tx->currency('CHF');
 
-=back
-
 =cut
 
 sub set_defaults {
 	my ($self, %opts) = @_;
 
-	$self->build_subs(qw/currency/);
+	$self->build_subs(qw/currency sha_passphrase_in sha_passphrase_out/);
 
 	$self->server(SERVER);
 	$self->currency(CURRENCY);
@@ -139,23 +141,77 @@ Ogone's payment page.
 
 sub form_fields {
 	my ($self) = @_;
-	my (%fields);
+	my (%fields, $sha_passphrase);
 
 	%fields = $self->_revmap_fields();
+
+	if ($sha_passphrase = $self->sha_passphrase_in()) {
+		$fields{SHASIGN} = $self->sha_signature($self->sha_passphrase_in, %fields);
+	}
+	
 	return %fields;
+}
+
+=head1 SHA signatures
+
+For security reasons it's recommended to use SHA signatures for data passed back
+and forth to the Ogone payment gateway. The SHA passphrases are set in Ogone's backend
+in the "Technical settings" at "Data and origin verification" (in)
+and "Transaction feedback" (out). If the SHA-IN passphrase is set in the backend,
+a request without a SHA signature will fail with "unknown order/0/s".
+
+=head2 sha_passphrase_in
+
+Sets the passphrase for the SHA-in signature (data check before the payment).
+
+    $tx->sha_passphrase_in('ku6Vo5oc=Hie8eiyu');
+
+=head2 sha_passphrase_out
+
+Sets the passphrase for the SHA-out signature (origin check of the return).
+
+    $tx->sha_passphrase_out('thaiFoo5=Choochu9');
+
+=head2 sha_signature ($sha_passphrase, %fields)
+
+This method calculates the SHA signature which is composed of all
+the populated fields in the request by joining the key, the equal
+sign, the value and the SHA passphrase for each of these fields.
+
+=cut
+
+sub sha_signature {
+	my ($self, $sha_passphrase, %fields) = @_;
+	my (@tokens);
+	
+	for my $key (sort keys %fields) {
+		if (defined $fields{$key} && $fields{$key} =~ /\S/) {
+			push (@tokens, $key, '=', $fields{$key}, $sha_passphrase);
+		}
+	}
+
+	return sha1_hex(@tokens);
 }
 
 sub _revmap_fields {
 	my ($self) = @_;
-	my (%content, %reverse);
+	my (%content, %reverse, $value);
 
 	%content = $self->content();
 
 	# defaults
 	$reverse{CURRENCY} = $self->currency();
+
+	# SHA passphrases
+	$self->sha_passphrase_in(delete $content{sha_passphrase_in});
+	$self->sha_passphrase_out(delete $content{sha_passphrase_out});
 	
 	for (keys %reverse_map) {
-		$reverse{$_} = $content{$reverse_map{$_}};
+		$value = $content{$reverse_map{$_}};
+
+		if (defined $value && $value =~ /\S/) {
+			$reverse{$_} = $value;
+		}
 	}
 
 	return %reverse;
