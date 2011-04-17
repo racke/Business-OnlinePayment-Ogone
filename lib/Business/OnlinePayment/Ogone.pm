@@ -184,9 +184,9 @@ sub sha_signature {
 	my ($self, $sha_passphrase, %fields) = @_;
 	my (@tokens);
 	
-	for my $key (sort keys %fields) {
+	for my $key (sort {uc($a) cmp uc($b)} keys %fields) {
 		if (defined $fields{$key} && $fields{$key} =~ /\S/) {
-			push (@tokens, $key, '=', $fields{$key}, $sha_passphrase);
+			push (@tokens, uc($key), '=', $fields{$key}, $sha_passphrase);
 		}
 	}
 
