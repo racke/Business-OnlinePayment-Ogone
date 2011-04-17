@@ -32,7 +32,7 @@ our %reverse_map = (# General Payment Parameters
 					AMOUNT => 'amount', # amount (multiplied by 100)
 					CURRENCY => 'currency', # ISO currency code
 					# - customer information
-					LANGUAGE => '', # language (optional, default: en_US)
+					LANGUAGE => 'language', # language (optional, default: en_US)
 					CN => 'name', # name
 					EMAIL => 'email', # email address
 					OWNERADDRESS => 'address', # street address
