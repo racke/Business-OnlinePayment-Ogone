@@ -90,7 +90,7 @@ code.
 sub set_defaults {
 	my ($self, %opts) = @_;
 
-	$self->build_subs(qw/currency sha_passphrase_in sha_passphrase_out/);
+	$self->build_subs(qw/card_type currency payment_method sha_passphrase_in sha_passphrase_out/);
 
 	$self->server(SERVER);
 	$self->currency(CURRENCY);
@@ -154,6 +154,65 @@ sub form_fields {
 	
 	return %fields;
 }
+
+=head2 reference $data
+
+Store and examine data from Ogone.
+
+=cut
+
+sub reference {
+	my ($self, $data) = @_;
+	my ($status);
+
+	# status
+	$status = $data->{STATUS};
+
+	# set result code
+	$self->result_code($status);
+
+	if ($status == 5 || $status == 9) {
+		# Authorized resp. Payment requested
+		$self->is_success(1);
+		$self->authorization($data->{ACCEPTANCE});
+		$self->order_number($data->{PAYID});
+		$self->payment_method($data->{PM});
+		$self->card_type($data->{BRAND});
+	}
+	elsif ($status == 0) {
+		# Invalid or incomplete
+		$self->is_success(0);
+        }
+	elsif ($status == 2) {
+		# Authorization refused
+		$self->is_success(0);
+	}
+	else {
+		$self->is_success(0);
+	}	
+
+	return;
+}
+
+sub submit {
+	my ($self) = @_;
+
+	# does nothing right now
+
+	return 1;
+}
+
+=head1 Payment results
+
+The following methods are available in addition to the methods provided by L<Business::OnlinePayment>.
+
+=head2 payment_method
+
+Returns the payment method used by the customer (CreditCard, ...).
+
+=head2 card_type
+
+Returns the card type used by the customer (VISA, MasterCard, ...).
 
 =head1 SHA signatures
 
