@@ -145,6 +145,9 @@ sub form_fields {
 
 	%fields = $self->_revmap_fields();
 
+	# amount to be paid needs to be multiplied by 100 for the payment request
+	$fields{AMOUNT} *= 100;
+	
 	if ($sha_passphrase = $self->sha_passphrase_in()) {
 		$fields{SHASIGN} = $self->sha_signature($self->sha_passphrase_in, %fields);
 	}
