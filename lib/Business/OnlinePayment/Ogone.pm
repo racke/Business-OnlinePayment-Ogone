@@ -90,7 +90,7 @@ code.
 sub set_defaults {
 	my ($self, %opts) = @_;
 
-	$self->build_subs(qw/card_type currency order_number payment_method sha_passphrase_in sha_passphrase_out/);
+	$self->build_subs(qw/card_type currency order_number payment_method reference_number sha_passphrase_in sha_passphrase_out/);
 
 	$self->server(SERVER);
 	$self->currency(CURRENCY);
@@ -176,6 +176,7 @@ sub reference {
 		$self->is_success(1);
 		$self->authorization($data->{ACCEPTANCE});
 		$self->order_number($data->{PAYID});
+		$self->reference_number($data->{orderID});
 		$self->payment_method($data->{PM});
 		$self->card_type($data->{BRAND});
 	}
@@ -213,6 +214,10 @@ Returns the payment method used by the customer (CreditCard, ...).
 =head2 card_type
 
 Returns the card type used by the customer (VISA, MasterCard, ...).
+
+=head2 reference_number
+
+Returns the merchant reference number passed with the payment request.
 
 =head1 SHA signatures
 
