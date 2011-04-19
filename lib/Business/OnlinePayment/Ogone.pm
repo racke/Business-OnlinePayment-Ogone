@@ -90,7 +90,7 @@ code.
 sub set_defaults {
 	my ($self, %opts) = @_;
 
-	$self->build_subs(qw/card_type currency payment_method sha_passphrase_in sha_passphrase_out/);
+	$self->build_subs(qw/card_type currency order_number payment_method sha_passphrase_in sha_passphrase_out/);
 
 	$self->server(SERVER);
 	$self->currency(CURRENCY);
