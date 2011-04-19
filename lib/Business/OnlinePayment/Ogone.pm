@@ -4,7 +4,7 @@ use warnings;
 use strict;
 
 use Business::OnlinePayment 3;
-use Digest::SHA1 qw(sha1_hex);
+use Digest::SHA qw(sha1_hex sha256_hex sha512_hex);
 
 use vars qw(@ISA);
 
@@ -222,17 +222,35 @@ in the "Technical settings" at "Data and origin verification" (in)
 and "Transaction feedback" (out). If the SHA-IN passphrase is set in the backend,
 a request without a SHA signature will fail with "unknown order/0/s".
 
-=head2 sha_passphrase_in
+=head2 sha_algorithm ($algorithm)
+
+Sets the SHA algorithm used. Possible values are 1, 256, 512. This has to match
+the SHA algorithm in Ogone's backend, otherwise the request will fail with
+"unknown order/1/s/". 
+
+Returns the algorithm in use.
+
+=head2 sha_passphrase_in ($sha_passphrase_in)
 
 Sets the passphrase for the SHA-in signature (data check before the payment).
 
     $tx->sha_passphrase_in('ku6Vo5oc=Hie8eiyu');
 
-=head2 sha_passphrase_out
+Returns the passphrase in use.
+
+=head2 sha_passphrase_out ($sha_passphrase_out)
 
 Sets the passphrase for the SHA-out signature (origin check of the return).
 
     $tx->sha_passphrase_out('thaiFoo5=Choochu9');
+
+Returns the passphrase in use.
+
+=head2 sha_object ($sha_algorithm)
+
+Returns object used for creating SHA signatures.
+A new object will be created if $sha_algorithm is passed or no
+object exists yet.
 
 =head2 sha_signature ($sha_passphrase, %fields)
 
@@ -242,9 +260,38 @@ sign, the value and the SHA passphrase for each of these fields.
 
 =cut
 
+sub sha_object {
+	my ($self, $sha_algorithm) = @_;
+	my ($sha_object, $digest_algorithm);
+
+	if (defined $sha_algorithm) {
+		$sha_object = Digest::SHA->new($sha_algorithm);
+                $digest_algorithm = $sha_object->algorithm;
+
+                if ($digest_algorithm != 1 && $digest_algorithm != 256 && $digest_algorithm != 512) {
+                        die "Invalid SHA digest algorithm (use 1, 256 or 512).";
+                }
+
+                $self->{sha_object} = $sha_object;
+	}
+	
+	unless (exists $self->{sha_object}) {
+                $self->{sha_object} = Digest::SHA->new(1);
+        }
+
+	return $self->{sha_object};	
+}
+
+sub sha_algorithm {
+	my ($self, $sha_algorithm) = @_;
+	my ($sha_object, $algorithm);
+
+	return $self->sha_object($sha_algorithm)->algorithm();
+}
+
 sub sha_signature {
 	my ($self, $sha_passphrase, %fields) = @_;
-	my (@tokens);
+	my ($sha_object, @tokens);
 	
 	for my $key (sort {uc($a) cmp uc($b)} keys %fields) {
 		if (defined $fields{$key} && $fields{$key} =~ /\S/) {
@@ -252,7 +299,7 @@ sub sha_signature {
 		}
 	}
 
-	return sha1_hex(@tokens);
+	return $self->sha_object->add(@tokens)->hexdigest();
 }
 
 sub _revmap_fields {
