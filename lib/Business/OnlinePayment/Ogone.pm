@@ -26,6 +26,7 @@ use constant SERVER => 'secure.ogone.com';
 use constant STANDARD_PAGE => 'orderstandard.asp';
 use constant STANDARD_PAGE_TEST => 'teststd.asp';
 use constant TEST_LOGIN => 'test';
+use constant PROD_LOGIN => 'prod';
 use constant CURRENCY => 'EUR';
 
 our %reverse_map = (# General Payment Parameters
@@ -115,8 +116,7 @@ sub form_action {
 		$login = TEST_LOGIN;
 	}
 	else {
-		%fields = $self->get_fields('login');
-		$login = $fields{'login'};
+		$login = PROD_LOGIN;
 	}
 
 	return 'https://' . join('/', $self->server, 'ncol', $login, STANDARD_PAGE);
